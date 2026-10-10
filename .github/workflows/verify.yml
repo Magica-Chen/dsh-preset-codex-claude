@@ -36,7 +36,7 @@ jobs:
           (function walk(l){ for (const r of l||[]) { if (r.name === 'cordis:group') { walk(r.config); continue; } flat.push(r); } })(preset.plugins);
           const ids = flat.map(r => r.id);
           if (ids.length !== new Set(ids).size) throw new Error('duplicate row ids');
-          const providers = flat.filter(r => /dsh-subagent-(codex|claude-code)\$/.test(r.name||''));
+          const providers = flat.filter(r => /dsh-subagent-(codex|claude-code)$/.test(r.name||''));
           if (providers.length !== 4) throw new Error('expected 4 providers, got ' + providers.length);
           const tools = flat.filter(r => r.config && r.config.toolName).map(r => r.config.toolName);
           const want = ['subagent_codex','subagent_codex_readonly','subagent_claude_code','subagent_claude_readonly'];
@@ -60,5 +60,7 @@ jobs:
           console.log('plan-mode section ok:', s.length, 'chars /', s.split('\n\n').length, 'paragraphs');
           "
 
-      - name: Doctor CLI is syntactically valid and self-documents
-        run: node --check bin/doctor.mjs && node bin/doctor.mjs --help >/dev/null 2>&1 || true
+      - name: Doctor CLI is syntactically valid and self-documenting
+        run: |
+          node --check bin/doctor.mjs
+          node bin/doctor.mjs --help >/dev/null

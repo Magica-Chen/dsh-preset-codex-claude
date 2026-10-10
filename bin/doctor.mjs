@@ -82,6 +82,27 @@ function onPath(cmd) {
   try { execFileSync('which', [cmd], { stdio: 'ignore' }); return true } catch { return false }
 }
 
+if (process.argv.includes('-h') || process.argv.includes('--help')) {
+  console.log(`dsh-preset-codex-claude — preflight
+
+Verifies that the "Codex + Claude Code" agent preset can load, with no DSH
+runtime required: it checks the installation anchor, the two product-subagent
+providers (which must resolve from the dsh INSTALLATION, not your profile),
+the agent CLIs, and the preset declaration itself.
+
+Usage:
+  node <path-to>/dsh-preset-codex-claude/bin/doctor.mjs
+
+Exit status:
+  0  ready — restart dsh, then create a NEW session and pick the mode
+  1  one or more problems must be fixed (each is printed with its fix)
+
+Environment overrides:
+  DSH_HOME              dsh home directory (default: ~/.dsh)
+  DSH_PRESET_CC_DSH     expected dsh/provider version (default: 0.2.0-rc.2)`)
+  process.exit(0)
+}
+
 console.log('dsh-preset-codex-claude \u2014 preflight')
 
 // ---------------------------------------------------------------- environment
