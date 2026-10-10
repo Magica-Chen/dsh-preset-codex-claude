@@ -15,6 +15,30 @@ It uses the **official** `@deepseek-ai/dsh-subagent-codex` and `@deepseek-ai/dsh
 providers — no reimplementation. Codex runs over its own `app-server` protocol; Claude Code runs over
 the official Agent SDK.
 
+## What this gives you
+
+DeepSeek Harness normally hands one model the whole task. This preset adds two *external* workers you
+can delegate to from inside a session:
+
+- **Pick the worker per task.** Codex and Claude Code have different strengths and different failure
+  modes. You are no longer choosing one for the whole conversation.
+- **Pick the permission tier per task.** Each vendor is registered twice — a read-only tier for
+  analysis and a full-access tier for changes that need to write files and run tests.
+- **Run both at once.** The delegation tools accept `run_in_background`, so you can dispatch Codex and
+  Claude Code on independent parts of the same problem, then reconcile their answers.
+
+It is a thin, declarative layer: four provider registrations and four tools, all using the official
+providers. No forks, no wrappers, no reimplementation of either agent.
+
+```text
+                    ┌─────────────────────────────┐
+   your session ───▶│ subagent_codex              │  Codex        full access
+   (any model)      │ subagent_codex_readonly     │  Codex        read-oriented
+                    │ subagent_claude_code        │  Claude Code  full access
+                    │ subagent_claude_readonly    │  Claude Code  hard read-only
+                    └─────────────────────────────┘
+```
+
 ---
 
 ## ⚠️ Read this first: the install is two steps
