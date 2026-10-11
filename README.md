@@ -2,7 +2,7 @@
 
 <p>
   <img alt="License: MIT" src="https://img.shields.io/github/license/Magica-Chen/dsh-preset-codex-claude.svg">
-  <a href="https://github.com/Magica-Chen/dsh-preset-codex-claude/actions/workflows/verify.yml"><img alt="CI: passing" src="https://img.shields.io/github/actions/workflow/status/Magica-Chen/dsh-preset-codex-claude/verify.yml?branch=main&label=verify"></a>
+  <a href="https://github.com/Magica-Chen/dsh-preset-codex-claude/actions/workflows/verify.yml"><img alt="CI: passing" src="https://img.shields.io/github/actions/workflow/status/Magica-Chen/dsh-preset-codex-claude/verify.yml?branch=main&amp;label=verify"></a>
   <img alt="DeepSeek Harness agent preset" src="https://img.shields.io/badge/DeepSeek%20Harness-agent%20preset-blue.svg">
   <img alt="Node >= 18" src="https://img.shields.io/badge/node-%3E%3D18-339933.svg">
   <img alt="Codex subagent" src="https://img.shields.io/badge/Codex-subagent-000000.svg">
