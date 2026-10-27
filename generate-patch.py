@@ -16,73 +16,52 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 TARGET = os.path.join(HERE, "cordis.patch.yml")
 
-HEADER = """# Bundle patch: one `@deepseek-ai/dsh-agent-preset` declaration that adds a
-# `codex-claude` mode to the Web preset roster.
+HEADER = """# Bundle patch: four Host providers and one `codex-claude` agent preset.
+# Codex uses the official app-server; Claude Code uses the official Agent SDK.
+# Each vendor has a full-access and a native unattended-policy registration.
+# Pairing and delegation are optional. Managed activations return a child id
+# immediately; the runtime delivers each external worker's final result later.
 #
-# The mode offers Codex and Claude Code as delegation subagents, each at a
-# read-only and a full-access tier, plus the in-harness `subagent` /
-# `subagent_fork`. Both products can be dispatched at once — the delegation tool
-# accepts `run_in_background` because its `enableRunInBackground` defaults true —
-# so independent work can come back in parallel and be reconciled afterward.
-# Pairing is OFFERED, not mandated.
+# The historical *_readonly tool names are NOT filesystem security boundaries:
+# Codex `never` inherits native sandbox settings; Claude Code `dontAsk` denies
+# permission prompts, but native user/project settings can pre-authorize tools.
+# Use an independently enforced sandbox for tasks requiring strict read-only.
+# Full-access workers bypass native permission checks and can modify files/run
+# commands. Choose that tier only when the user's task authorizes those effects.
 #
-# It mounts the two OPT-IN product-subagent providers — Codex (official
-# app-server protocol) and Claude Code (official Agent SDK) — at the HOST service
-# seam `ctx.subagents`. Each vendor is registered TWICE at a different native
-# permission tier so one session can pick the right level PER TASK. Both
-# providers declare `NO_START_CAPABILITIES`, so a per-child `toolFilter`/`persona`
-# is NOT available; the permission mode is fixed when the provider is registered,
-# which is why two instances exist per vendor.
-#
-# Tier semantics (verified against the provider sources, not the docs):
-#
-#   claude-readonly  permissionMode `dontAsk`  -> Write/Edit/Bash all denied.
-#                    Hard read-only: there is no human to approve, and the
-#                    provider installs `canUseTool: () => deny`.
-#   claude-code      permissionMode `bypassPermissions` -> write + command.
-#                    Required for anything needing Bash (tests, builds).
-#   codex-readonly   permissionMode `never` -> approvalPolicy never, and NO
-#                    sandbox field is sent, so Codex inherits the user's own
-#                    Codex config. Read-oriented only if that config says so.
-#   codex            permissionMode `dangerously-bypass-approvals-and-sandbox`
-#                    -> approvalPolicy never + sandbox danger-full-access.
-#
-# `maxDepth: provider-managed` mirrors the shipped standard preset rows and sends
-# no depth cap, so a child product may run its own nested agents.
+# Providers belong on the Host, not in eagerly retained preset revisions.
+# Names are private to this bundle, avoiding collisions with optional standalone
+# Codex/Claude bundles. Only this preset exposes these four named tools.
+# `maxDepth: provider-managed` delegates nested-agent policy to each product.
 """
 
 # ---------------------------------------------------------------- canonical rows
 # The four host-plane provider registrations. `subagents` is a process
 # singleton, so these names must stay unique across the whole process.
-PROVIDERS = """          # ---------------------------------------------------------------
-          # Host seam: the two product-subagent providers (4 registrations).
-          # `subagents` is a process singleton on the host plane, so these rows
-          # register globally and are shared by any session that selects this
-          # preset. Provider names must stay unique across the whole process.
-          # ---------------------------------------------------------------
-          - id: subagent-codex-provider
-            name: '@deepseek-ai/dsh-subagent-codex'
-            config:
-              providerName: codex
-              permissionMode: dangerously-bypass-approvals-and-sandbox
+PROVIDERS = """    - id: provider-preset-codex-claude-codex
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: preset-codex-claude-codex
+        permissionMode: dangerously-bypass-approvals-and-sandbox
 
-          - id: subagent-codex-readonly-provider
-            name: '@deepseek-ai/dsh-subagent-codex'
-            config:
-              providerName: codex-readonly
-              permissionMode: never
+    - id: provider-preset-codex-claude-codex-readonly
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: preset-codex-claude-codex-readonly
+        permissionMode: never
 
-          - id: subagent-claude-provider
-            name: '@deepseek-ai/dsh-subagent-claude-code'
-            config:
-              providerName: claude-code
-              permissionMode: bypassPermissions
+    - id: provider-preset-codex-claude-claude
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: preset-codex-claude-claude
+        permissionMode: bypassPermissions
 
-          - id: subagent-claude-readonly-provider
-            name: '@deepseek-ai/dsh-subagent-claude-code'
-            config:
-              providerName: claude-readonly
-              permissionMode: dontAsk
+    - id: provider-preset-codex-claude-claude-readonly
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: preset-codex-claude-claude-readonly
+        permissionMode: dontAsk
+
 """
 
 # Everything after the persona row: the standard tool surface, then the
@@ -154,15 +133,10 @@ BODY = """          - id: agent-instructions
                   tailChars: 1024
 
           # ---------------------------------------------------------------
-          # Delegation plane. This group's `config` children mount the
-          # model-facing tools; the providers above live OUTSIDE it because
-          # they register into the host-plane `subagents` singleton.
-          # Four product tools, one per provider/tier.
-          #
-          # `backgroundMode: one-shot` is required: these are one-shot product
-          # providers with no `prepareContinuable` capability. `run_in_background`
-          # stays available (enableRunInBackground defaults true), which is what
-          # lets a session dispatch Codex and Claude Code simultaneously.
+          # Scoped model-facing tools for the four Host provider registrations.
+          # Every delegation returns a child id immediately. External workers
+          # deliver a completion notice but do not accept follow-up messages.
+          # Start independent work together; pairing is never mandatory.
           # ---------------------------------------------------------------
           - id: delegation
             name: cordis:group
@@ -183,49 +157,43 @@ BODY = """          - id: agent-instructions
                   provider: spawn
                   toolName: subagent
                   modelSelectionSettings: true
-                  backgroundMode: continuable
 
               - id: tool-subagent-fork
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
                   provider: fork
                   toolName: subagent_fork
-                  backgroundMode: continuable
 
               # --- Codex, full access ---
               - id: tool-subagent-codex
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
-                  provider: codex
+                  provider: preset-codex-claude-codex
                   toolName: subagent_codex
-                  backgroundMode: one-shot
                   maxDepth: provider-managed
 
               # --- Codex, read-oriented ---
               - id: tool-subagent-codex-readonly
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
-                  provider: codex-readonly
+                  provider: preset-codex-claude-codex-readonly
                   toolName: subagent_codex_readonly
-                  backgroundMode: one-shot
                   maxDepth: provider-managed
 
               # --- Claude Code, full access ---
               - id: tool-subagent-claude-code
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
-                  provider: claude-code
+                  provider: preset-codex-claude-claude
                   toolName: subagent_claude_code
-                  backgroundMode: one-shot
                   maxDepth: provider-managed
 
-              # --- Claude Code, hard read-only ---
+              # --- Claude Code, native unattended policy ---
               - id: tool-subagent-claude-readonly
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
-                  provider: claude-readonly
+                  provider: preset-codex-claude-claude-readonly
                   toolName: subagent_claude_readonly
-                  backgroundMode: one-shot
                   maxDepth: provider-managed
 
               - id: workflow-ptc
@@ -303,21 +271,21 @@ PRESETS = [
         "order": 20,
         "description": [
             "Standard coding tools plus four delegation subagents: Codex and Claude",
-            "Code, each at a read-only and a full-access tier. Both products can be",
-            "dispatched in parallel on one task.",
+            "Code, each with full-access and native unattended-policy tiers.",
+            "Pairing is optional; neither unattended tier guarantees read-only.",
         ],
         "prefix": [
-            "You are a coding agent powered by the {{model}} model. You have four",
-            "delegation subagents: Codex (`subagent_codex`,",
-            "`subagent_codex_readonly`) and Claude Code (`subagent_claude_code`,",
-            "`subagent_claude_readonly`), each with a full-access and a read-only",
-            "tier; use the read-only tier for analysis so it cannot modify the",
-            "workspace. Each subagent starts fresh without this conversation, so its",
-            "prompt must be self-contained. You may dispatch Codex and Claude Code at",
-            "the same time with `run_in_background` to get independent work back in",
-            "parallel, then reconcile their answers and own the final result. Pairing",
-            "and delegation are offered, not required: use them when independent work",
-            "would help, and otherwise just do the work yourself.",
+            "You are a coding agent powered by the {{model}} model. Codex",
+            "(`subagent_codex`, `subagent_codex_readonly`) and Claude Code",
+            "(`subagent_claude_code`, `subagent_claude_readonly`) are optional",
+            "delegation tools; use either, both, or neither as the task warrants.",
+            "Full-access tools bypass native permission checks and may write files",
+            "and run commands; use them only for effects the user has authorized.",
+            "The *_readonly names are legacy labels, not read-only enforcement:",
+            "Codex inherits native sandbox settings, and Claude Code may use tools",
+            "already allowed by native settings. For strict read-only work, require",
+            "an independently enforced sandbox instead. Reconcile delegated results",
+            "and take responsibility for the final answer.",
         ],
     },
 ]
@@ -339,7 +307,6 @@ def indent_plan_section(text):
 def render_preset(spec):
     desc = "\n".join("          " + line for line in spec["description"])
     return (
-        "- insert:\n"
         "    - id: preset-{id}\n"
         "      name: '@deepseek-ai/dsh-agent-preset'\n"
         "      config:\n"
@@ -349,7 +316,6 @@ def render_preset(spec):
         "{desc}\n"
         "        order: {order}\n"
         "        plugins:\n"
-        "{providers}"
         "{persona}"
         "{body}"
     ).format(
@@ -357,7 +323,6 @@ def render_preset(spec):
         name=spec["name"],
         desc=desc,
         order=spec["order"],
-        providers=PROVIDERS,
         persona=persona(spec["prefix"]),
         body=BODY.replace("{PLAN_SECTION}", indent_plan_section(PLAN_SECTION)),
     )
@@ -374,9 +339,15 @@ def main():
             "                " + last + "\n\n          - id: agent-instructions",
         )
         rendered.append(text)
-    out = HEADER + "\n".join(rendered)
+    out = HEADER + "- insert:\n" + PROVIDERS + "\n".join(rendered)
 
     # --- structural self-check before writing ---
+    for provider_name in (
+        "preset-codex-claude-codex", "preset-codex-claude-codex-readonly",
+        "preset-codex-claude-claude", "preset-codex-claude-claude-readonly",
+    ):
+        if f"        providerName: {provider_name}\n" not in PROVIDERS:
+            sys.exit(f"FATAL: missing Host provider {provider_name}")
     for spec in PRESETS:
         start = out.index("id: preset-" + spec["id"])
         ends = [
@@ -387,10 +358,6 @@ def main():
         end = min([e for e in ends if e > start], default=len(out))
         seg = out[start:end]
         must = [
-            "subagent-codex-provider",
-            "subagent-codex-readonly-provider",
-            "subagent-claude-provider",
-            "subagent-claude-readonly-provider",
             "id: persona",
             "id: tool-subagent-codex\n",
             "toolName: subagent_claude_readonly",

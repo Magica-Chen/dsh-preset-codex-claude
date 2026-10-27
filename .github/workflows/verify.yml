@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Generator reproduces the committed patch
         run: |
@@ -36,7 +36,17 @@ jobs:
           (function walk(l){ for (const r of l||[]) { if (r.name === 'cordis:group') { walk(r.config); continue; } flat.push(r); } })(preset.plugins);
           const ids = flat.map(r => r.id);
           if (ids.length !== new Set(ids).size) throw new Error('duplicate row ids');
-          const providers = flat.filter(r => /dsh-subagent-(codex|claude-code)$/.test(r.name||''));
+          const providers = doc[0].insert.filter(r => /dsh-subagent-(codex|claude-code)$/.test(r.name||''));
+          if (flat.some(r => /dsh-subagent-(codex|claude-code)$/.test(r.name||''))) throw new Error('providers must be Host rows');
+          const names = providers.map(r => r.config.providerName);
+          if (names.length !== new Set(names).size) throw new Error('duplicate provider names');
+          if (names.some(n => !n.startsWith('preset-codex-claude-'))) throw new Error('provider names must be namespaced');
+          for (const r of flat.filter(r => r.name === '@deepseek-ai/dsh-tool-subagent')) {
+            if ('backgroundMode' in r.config || 'enableRunInBackground' in r.config) throw new Error('obsolete delegation config');
+            if (r.config.toolName.startsWith('subagent_codex') || r.config.toolName.startsWith('subagent_claude')) {
+              if (!names.includes(r.config.provider)) throw new Error('tool has no Host provider');
+            }
+          }
           if (providers.length !== 4) throw new Error('expected 4 providers, got ' + providers.length);
           const tools = flat.filter(r => r.config && r.config.toolName).map(r => r.config.toolName);
           const want = ['subagent_codex','subagent_codex_readonly','subagent_claude_code','subagent_claude_readonly'];
@@ -59,6 +69,9 @@ jobs:
           }
           console.log('plan-mode section ok:', s.length, 'chars /', s.split('\n\n').length, 'paragraphs');
           "
+
+      - name: Doctor regression tests
+        run: npm test
 
       - name: Doctor CLI is syntactically valid and self-documenting
         run: |

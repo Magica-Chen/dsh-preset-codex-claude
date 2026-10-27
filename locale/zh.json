@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Codex + Claude Code",
+    "description": "按需使用 Codex 与 Claude Code 子代理，提供完整权限和原生免询问策略工具。免询问策略不保证只读访问。"
+  }
+}

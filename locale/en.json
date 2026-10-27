@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Codex + Claude Code",
+    "description": "Optional Codex and Claude Code workers with full-access and native unattended-policy tools. Unattended policies do not guarantee read-only access."
+  }
+}

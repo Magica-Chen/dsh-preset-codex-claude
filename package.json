@@ -1,11 +1,12 @@
 {
   "name": "dsh-preset-codex-claude",
-  "version": "1.0.0",
-  "description": "DeepSeek Harness agent preset: Codex and Claude Code as delegation subagents at read-only and full-access tiers.",
+  "version": "1.1.0",
+  "description": "DeepSeek Harness preset with optional Codex and Claude Code delegation, each with full-access and native unattended-policy tiers.",
   "type": "module",
   "license": "MIT",
   "keywords": [
     "dsh",
+    "dsh-plugin",
     "deepseek-harness",
     "agent-preset",
     "codex",
@@ -15,9 +16,15 @@
   "files": [
     "cordis.patch.yml",
     "bin/",
+    "locale/*.json",
+    "icon.svg",
     "README.md",
     "LICENSE"
   ],
+  "exports": {
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
   "bin": {
     "dsh-preset-codex-claude": "bin/doctor.mjs"
   },
@@ -30,14 +37,18 @@
     "url": "https://github.com/Magica-Chen/dsh-preset-codex-claude/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0",
+    "dsh": "^0.2.1-rc.3"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-subagent-codex": "^0.2.1-rc.3",
+    "@deepseek-ai/dsh-subagent-claude-code": "^0.2.1-rc.3",
     "js-yaml": "^4.1.0"
   },
   "scripts": {
     "build": "python3 generate-patch.py",
-    "doctor": "node bin/doctor.mjs"
+    "doctor": "node bin/doctor.mjs",
+    "test": "node --test"
   },
   "dsh": {
     "bundle": {
